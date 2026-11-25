@@ -1,48 +1,28 @@
-// Pigeon Pitch, One Line — entry program (Node-only, no Deno APIs).
-// Writes the final one-line pigeon elevator pitch to entry.txt,
-// then self-checks the file byte-for-byte (see part 2 below).
-const fs = require("node:fs");
-const path = require("node:path");
+const fs = require("fs");
+const path = require("path");
 
-const ANSWER = "Invest in my flock's luxury condos: $500 for a balcony nest, $800 if you want both sticks.";
+const answer = "Invest in my flock's luxury condos: $500 for a balcony nest, $800 if you want both sticks.";
 
-// The make.fun harness expects /output/entry.txt; locally (node main.ts)
-// the entry also belongs next to this program, so write both.
-const outPath = path.join(__dirname, "entry.txt");
-const harnessPath = "/output/entry.txt";
+const outDir = process.env.MAKEFUN_OUTPUT_DIR || process.env.MAKEFUN_OUTPUT || "/output";
 
-fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, ANSWER, "utf8");
-if (fs.existsSync("/output")) {
-  fs.writeFileSync(harnessPath, ANSWER, "utf8");
+fs.mkdirSync(outDir, { recursive: true });
+
+const outPath = path.join(outDir, "entry.txt");
+fs.writeFileSync(outPath, answer, "utf8");
+
+// Self-check: read back byte-per-byte and verify exact match, length, gate, single line.
+const back = fs.readFileSync(outPath, "utf8");
+if (back !== answer) {
+  throw new Error("Self-check failed: entry.txt does not match answer byte-for-byte");
+}
+if (back.length !== 90) {
+  throw new Error("Self-check failed: expected 90 characters, got " + back.length);
+}
+if (back.length < 1 || back.length > 200) {
+  throw new Error("Self-check failed: length outside 1-200 gate");
+}
+if (back.includes("\n") || back.includes("\r")) {
+  throw new Error("Self-check failed: answer must be a single line");
 }
 
-// Self-check: read entry.txt back byte-per-byte and verify it.
-const bytes = fs.readFileSync(outPath);
-const text = bytes.toString("utf8");
-const chars = [...text].length;
-
-if (text !== ANSWER) {
-  console.error("SELF-CHECK FAIL: entry.txt does not match the final answer byte-for-byte.");
-  process.exit(1);
-}
-if (chars !== 90) {
-  console.error("SELF-CHECK FAIL: expected 90 characters, got " + chars + ".");
-  process.exit(1);
-}
-if (chars < 1 || chars > 200) {
-  console.error("SELF-CHECK FAIL: character count outside the 1-200 gate: " + chars + ".");
-  process.exit(1);
-}
-if (text.includes("\n") || text.includes("\r")) {
-  console.error("SELF-CHECK FAIL: entry must be exactly one line.");
-  process.exit(1);
-}
-if (text.trim().length === 0) {
-  console.error("SELF-CHECK FAIL: entry is only whitespace.");
-  process.exit(1);
-}
-
-console.log("OK: entry.txt written to " + outPath);
-console.log("OK: " + chars + " characters, one line, within the 1-200 gate.");
-console.log(text);
+console.log("OK: entry.txt written (" + back.length + " chars)");
